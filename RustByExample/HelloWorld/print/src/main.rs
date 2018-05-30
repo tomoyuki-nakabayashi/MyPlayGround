@@ -20,4 +20,6 @@ fn main() {
         }
     }
     println!("This struct `{}` won't print...", Structure{number:3});
+
+    println!("Pi is roughly {:.*}", 3, 22.0/7.0);
 }
