@@ -1,0 +1,6 @@
+[package]
+name = "formatting"
+version = "0.1.0"
+authors = ["tomoyuki-nakabayashi <tomo.wait.for.it.yuki@gmail.com>"]
+
+[dependencies]
