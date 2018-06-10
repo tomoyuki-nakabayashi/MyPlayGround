@@ -43,12 +43,33 @@ entry:
         MOV     DH, 0           ; head 0
         MOV     CL, 2           ; sector 2
 
+readloop:
+        MOV     SI, 0           ; register to count failure.
+
+retry:
         MOV     AH, 0x02        ; read disk
         MOV     AL, 1           ; sector 1
         MOV     BX, 0           ; buffer address 0x0000
-        MOV     DL, 0x00        ; drive number
+        MOV     DL, 0x00        ; A drive
         INT     0x13            ; call disk BIOS
-        JC      error
+        JNC     next            ; jump if not error
+
+        ADD     SI, 1           ; increment SI
+        CMP     SI, 5
+        JAE     error           ; SI >= 5 then jump to error
+
+        MOV     AH, 0x00        ; reset
+        MOV     DL, 0x00        ; A drive
+        INT     0x13            ; reset drive
+        JMP     retry
+
+next:
+        MOV     AX, ES          ; add 0x200 (512) to address
+        ADD     AX, 0x0020
+        MOV     ES, AX
+        ADD     CL, 1           ; increment cl
+        CMP     CL, 18
+        JBE     readloop        ; CL <= 18 then jump readloop
 
 fin:
         HLT
