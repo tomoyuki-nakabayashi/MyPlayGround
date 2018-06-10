@@ -81,6 +81,9 @@ next:
         CMP     CH, CYLS
         JB      readloop        ; CH < CYLS then jump readloop
 
+; jump to haribote.asm
+        JMP     0xc200
+
 fin:
         HLT
         JMP     fin
