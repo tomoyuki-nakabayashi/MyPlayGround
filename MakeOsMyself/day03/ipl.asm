@@ -81,6 +81,7 @@ next:
         CMP     CH, CYLS
         JB      readloop        ; CH < CYLS then jump readloop
 
+        MOV     [0x0ff0], CH    ; up to where IPL loads the cylinders.
 ; jump to haribote.asm
         JMP     0xc200
 
