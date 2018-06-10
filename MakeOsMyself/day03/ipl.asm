@@ -1,6 +1,7 @@
 ; hello-os
 ; TAB=4
 
+CYLS    EQU     10              ; load up to where (CYLinderS)
         ORG     0x7c00          ; メモリ上の開始位置
 
 ; ディスクのための記述
@@ -32,9 +33,6 @@ entry:
         MOV     SS, AX
         MOV     SP, 0x7c00
         MOV     DS, AX
-        ;MOV     ES, AX
-
-        ;MOV     SI, msg
 
 ; load disk
         MOV     AX, 0x0820
@@ -70,6 +68,18 @@ next:
         ADD     CL, 1           ; increment cl
         CMP     CL, 18
         JBE     readloop        ; CL <= 18 then jump readloop
+
+        ; side B of the floppy
+        MOV     CL, 1           ; reset sector
+        ADD     DH, 1           ; reverse HEAD
+        CMP     DH, 2
+        JB      readloop
+
+        ; next Cylinder
+        MOV     DH, 0           ; reset HEAD
+        ADD     CH, 1           ; cylinder++
+        CMP     CH, CYLS
+        JB      readloop        ; CH < CYLS then jump readloop
 
 fin:
         HLT
