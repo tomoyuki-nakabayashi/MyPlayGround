@@ -117,6 +117,50 @@ void init_screen(unsigned char *vram, int xsize, int ysize) {
 	boxfill8(vram, xsize, COL8_FFFFFF, xsize -  3, ysize - 24, xsize -  3, ysize -  3);
 }
 
+void init_mouse_cursor8(char *mouse, char bc) {
+	static char cursor[16][16] = {
+		"**************..",
+		"*OOOOOOOOOOO*...",
+		"*OOOOOOOOOO*....",
+		"*OOOOOOOOO*.....",
+		"*OOOOOOOO*......",
+		"*OOOOOOO*.......",
+		"*OOOOOOO*.......",
+		"*OOOOOOOO*......",
+		"*OOOO**OOO*.....",
+		"*OOO*..*OOO*....",
+		"*OO*....*OOO*...",
+		"*O*......*OOO*..",
+		"**........*OOO*.",
+		"*..........*OOO*",
+		"............*OO*",
+		".............***"
+	};
+
+	for (int y = 0; y < 16; y++) {
+		for (int x = 0; x < 16; x++) {
+			if (cursor[y][x] == '*') {
+				mouse[y * 16 + x] = COL8_000000;
+			}
+			if (cursor[y][x] == 'O') {
+				mouse[y * 16 + x] = COL8_FFFFFF;
+			}
+			if (cursor[y][x] == '.') {
+				mouse[y * 16 + x] = bc;
+			}
+		}
+	}
+}
+
+void putblock8_8(char *vram, int vxsize, int pxsize,
+    int pysize, int px0, int py0, char *buf, int bxsize) {
+  for (int y = 0; y < pysize; y++) {
+    for (int x = 0; x < pxsize; x++) {
+      vram[(py0 + y) * vxsize + (px0 + x)] = buf[y * bxsize + x];
+    }
+  }
+}
+
 void HariMain(void) {
   init_palette();
 
@@ -126,6 +170,11 @@ void HariMain(void) {
   putfonts8_ascii(binfo->vram, binfo->scrnx, 8, 8, COL8_FFFFFF, "ABC 123");
   putfonts8_ascii(binfo->vram, binfo->scrnx, 31, 31, COL8_000000, "Haribote OS.");
   putfonts8_ascii(binfo->vram, binfo->scrnx, 30, 30, COL8_FFFFFF, "Haribote OS.");
+
+  char mcursor[256];
+  int mx = 160, my = 100;
+  init_mouse_cursor8(mcursor, COL8_008484);
+  putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
 
   unsigned char s[16];
   sprintf(s, "scrnx = %d", binfo->scrnx);
