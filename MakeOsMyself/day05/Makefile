@@ -1,3 +1,5 @@
+CFLAGS = -c -m32 -march=i486 -nostdlib
+
 default:
 	make img
 
@@ -13,8 +15,11 @@ nasmfunc.o : nasmfunc.asm Makefile
 hankaku.c : hankaku.txt convert_hankaku.py
 	python convert_hankaku.py
 
-bootpack.hrb : bootpack.c har.ld hankaku.c nasmfunc.o Makefile
-	gcc -march=i486 -m32 -nostdlib -T har.ld bootpack.c hankaku.c nasmfunc.o -o bootpack.hrb
+my_sprintf.o : my_sprintf.c
+	gcc $(CFLAGS) $^ -o $@
+
+bootpack.hrb : bootpack.c har.ld hankaku.c nasmfunc.o my_sprintf.o Makefile
+	gcc -march=i486 -m32 -nostdlib -nostdinc -T har.ld bootpack.c hankaku.c nasmfunc.o my_sprintf.o -o bootpack.hrb
 
 haribote.sys : asmhead.bin bootpack.hrb Makefile
 	cat asmhead.bin bootpack.hrb > haribote.sys
