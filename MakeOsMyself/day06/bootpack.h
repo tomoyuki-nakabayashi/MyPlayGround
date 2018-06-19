@@ -26,11 +26,14 @@ struct BOOTINFO {
 // nasmfunc.asm
 void io_hlt(void);
 void io_cli(void);
+void io_sti(void);
 void io_out8(int port, int data);
 int io_load_eflags(void);
 void io_store_eflags(int eflags);
 void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
+void asm_irq_handler21(void);
+void asm_irq_handler2c(void);
 
 // my_sprintf.c
 void sprintf (char *str, char *fmt, ...);
@@ -55,3 +58,21 @@ void load_idtr(int limit, int addr);
 #define LIMIT_BOTPAK	0x0007ffff
 #define AR_DATA32_RW	0x4092
 #define AR_CODE32_ER	0x409a
+#define AR_INTGATE32	0x008e
+
+/* int.c */
+void init_pic(void);
+void inthandler21(int *esp);
+void inthandler2c(int *esp);
+#define PIC0_ICW1		0x0020
+#define PIC0_OCW2		0x0020
+#define PIC0_IMR		0x0021
+#define PIC0_ICW2		0x0021
+#define PIC0_ICW3		0x0021
+#define PIC0_ICW4		0x0021
+#define PIC1_ICW1		0x00a0
+#define PIC1_OCW2		0x00a0
+#define PIC1_IMR		0x00a1
+#define PIC1_ICW2		0x00a1
+#define PIC1_ICW3		0x00a1
+#define PIC1_ICW4		0x00a1

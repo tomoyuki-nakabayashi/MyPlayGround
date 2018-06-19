@@ -7,6 +7,8 @@ section .text
     GLOBAL  io_out8, io_out16, io_out32
     GLOBAL  io_load_eflags, io_store_eflags
     GLOBAL  load_gdtr, load_idtr
+    GLOBAL  asm_irq_handler21, asm_irq_handler2c
+    EXTERN  irq_handler21, irq_handler2c
 
 io_hlt:     ; void io_hlt(void)
     HLT
@@ -82,3 +84,37 @@ load_idtr:		; void load_idtr(int limit, int addr)
 		MOV		[ESP+6],AX
 		LIDT	[ESP+6]
 		RET
+
+asm_irq_handler21:  ; void irq_handler21(int *esp)
+        PUSH    ES
+        PUSH    DS
+        PUSHAD
+        MOV     EAX, ESP
+        PUSH    EAX
+        MOV     AX, SS
+        MOV     DS, AX
+        MOV     ES, AX
+        CALL    irq_handler21
+        POP     EAX
+        POPAD
+        POP     DS
+        POP     ES
+        IRETD
+
+
+asm_irq_handler2c:  ; void irq_handler2c(int *esp)
+        PUSH    ES
+        PUSH    DS
+        PUSHAD
+        MOV     EAX, ESP
+        PUSH    EAX
+        MOV     AX, SS
+        MOV     DS, AX
+        MOV     ES, AX
+        CALL    irq_handler2c
+        POP     EAX
+        POPAD
+        POP     DS
+        POP     ES
+        IRETD
+

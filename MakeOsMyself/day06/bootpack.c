@@ -2,14 +2,13 @@
 
 void HariMain(void) {
   init_gdtidt();
-  init_palette();
+  init_pic();
+  io_sti();
+
 
   struct BOOTINFO *binfo = (struct BOOTINFO*) ADR_BOOTINFO;
-
+  init_palette();
   init_screen(binfo->vram, binfo->scrnx, binfo->scrny);
-  putfonts8_ascii(binfo->vram, binfo->scrnx, 8, 8, COL8_FFFFFF, "ABC 123");
-  putfonts8_ascii(binfo->vram, binfo->scrnx, 31, 31, COL8_000000, "Haribote OS.");
-  putfonts8_ascii(binfo->vram, binfo->scrnx, 30, 30, COL8_FFFFFF, "Haribote OS.");
 
   char mcursor[256];
   int mx = 160, my = 100;
@@ -19,6 +18,9 @@ void HariMain(void) {
   unsigned char s[16];
   sprintf(s, "scrnx = %d", binfo->scrnx);
   putfonts8_ascii(binfo->vram, binfo->scrnx, 16, 64, COL8_FFFFFF, s);
+
+	io_out8(PIC0_IMR, 0xf9);  // keyboard: IRQ1 (11111001)
+	io_out8(PIC1_IMR, 0xef);  // mouse: IRQ12 (11101111)
 
   for(;;) {
     io_hlt();
