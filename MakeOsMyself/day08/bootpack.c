@@ -12,6 +12,11 @@
 extern struct FIFO8 keyfifo;
 extern struct FIFO8 mousefifo;
 
+struct MOUSE_DEC {
+  unsigned char buf[3], phase;
+  int x, y, btn;
+};
+
 void wait_KBC_sendready(void) {
   // Wait for keyboard controller is ready to send data.
   for (;;) {
@@ -29,12 +34,47 @@ void init_keyboard(void) {
   io_out8(PORT_KEYDAT, KBC_MODE);
 }
 
-void enable_mouse(void) {
+void enable_mouse(struct MOUSE_DEC *mdec) {
   wait_KBC_sendready();
   io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
   wait_KBC_sendready();
   io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
   // Will recieve ACK (0xfa)
+  mdec->phase = 0;
+}
+
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data) {
+  if (mdec->phase == 0) {
+    if (data == 0xfa) {
+      mdec->phase = 1;
+    }
+    return 0;
+  } else if (mdec->phase == 1) {
+    if ((data & 0xc8) == 0x08) {
+      mdec->buf[0] = data;
+      mdec->phase = 2;
+    }
+    return 0;
+  } else if (mdec->phase == 2) {
+    mdec->buf[1] = data;
+    mdec->phase = 3;
+    return 0;
+  } else if (mdec->phase == 3) {
+    mdec->buf[2] = data;
+    mdec->phase = 1;
+    mdec->btn = mdec->buf[0] & 0x07;
+    mdec->x = mdec->buf[1];
+    mdec->y = mdec->buf[2];
+    if ((mdec->buf[0] & 0x10) != 0) {
+      mdec->x |= 0xffffff00;
+    }
+    if ((mdec->buf[1] & 0x20) != 0) {
+      mdec->y |= 0xffffff00;
+    }
+    mdec->y = -mdec->y;
+    return 1;
+  }
+  return -1;
 }
 
 void HariMain(void) {
@@ -62,9 +102,8 @@ void HariMain(void) {
 	sprintf(s, "(%d, %d)", mx, my);
 	putfonts8_ascii(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 
-  unsigned char mouse_dbuf[3], mouse_phase;
-  enable_mouse();
-  mouse_phase = 0;  // Waiting for 0xfa from mouse.
+  struct MOUSE_DEC mdec;
+  enable_mouse(&mdec);
 
   for(;;) {
     io_cli();
@@ -81,23 +120,34 @@ void HariMain(void) {
       } else if (fifo8_status(&mousefifo) != 0) {
         unsigned char data = fifo8_get(&mousefifo);
         io_sti();
-        if (mouse_phase == 0) {
-          if (data == 0xfa) {
-            mouse_phase = 1;
-          }
-        } else if (mouse_phase == 1) {
-          mouse_dbuf[0] = data;
-          mouse_phase = 2;
-        } else if (mouse_phase == 2) {
-          mouse_dbuf[1] = data;
-          mouse_phase = 3;
-        } else if (mouse_phase == 3) {
-          mouse_dbuf[2] = data;
-          mouse_phase = 1;
+        if (mouse_decode(&mdec, data) == 1) {
           unsigned char s[32];
-          sprintf(s, "%x %x %x", mouse_dbuf[0], mouse_dbuf[1], mouse_dbuf[2]);
+          sprintf(s, "[lcr %d %d]", mdec.x, mdec.y);
+          if ((mdec.btn & 0x01) != 0) {
+            s[1] = 'L';
+          }
+          if ((mdec.btn & 0x02) != 0) {
+            s[3] = 'R';
+          }
+          if ((mdec.btn & 0x04) != 0) {
+            s[2] = 'C';
+          }
           boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 32, 16, 32 + 8 * 8 - 1, 31);
           putfonts8_ascii(binfo->vram, binfo->scrnx, 32, 16, COL8_FFFFFF, s);
+
+          // Move mouse cursor
+          // Erase mouse cursor
+          boxfill8(binfo->vram, binfo->scrnx, COL8_008484, mx, my, mx + 15, my + 15);
+          mx += mdec.x;
+          my += mdec.y;
+          if (mx < 0) mx = 0;
+          if (my < 0) my = 0;
+          if (mx > binfo->scrnx - 16) mx = binfo->scrnx - 16;
+          if (my > binfo->scrny - 16) my = binfo->scrny - 16;
+          sprintf(s, "(%d, %d)", mx, my);
+          boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 0, 79, 15);  // Erase axis
+          putfonts8_ascii(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);  // Draw axis
+          putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
         }
       }
     }
