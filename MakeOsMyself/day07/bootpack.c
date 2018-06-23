@@ -1,12 +1,50 @@
 #include "bootpack.h"
 
+#define PORT_KEYDAT   0x0060
+#define PORT_KEYSTA   0x0064
+#define PORT_KEYCMD   0x0064
+#define KEYSTA_SEND_NOTREADY  0x02
+#define KEYCMD_WRITE_MODE 0x60
+#define KBC_MODE      0x47
+#define KEYCMD_SENDTO_MOUSE   0xd4
+#define MOUSECMD_ENABLE       0xf4
+
 extern struct FIFO8 keyfifo;
+
+void wait_KBC_sendready(void) {
+  // Wait for keyboard controller is ready to send data.
+  for (;;) {
+    if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0) {
+      break;
+    }
+  }
+}
+
+void init_keyboard(void) {
+  // Initialize keyboard controller
+  wait_KBC_sendready();
+  io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
+  wait_KBC_sendready();
+  io_out8(PORT_KEYDAT, KBC_MODE);
+}
+
+void enable_mouse(void) {
+  wait_KBC_sendready();
+  io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
+  wait_KBC_sendready();
+  io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
+}
 
 void HariMain(void) {
   init_gdtidt();
   init_pic();
   io_sti();
 
+  char keybuf[32];
+  fifo8_init(&keyfifo, 32, keybuf);
+	io_out8(PIC0_IMR, 0xf9);  // keyboard: IRQ1 (11111001)
+	io_out8(PIC1_IMR, 0xef);  // mouse: IRQ12 (11101111)
+  init_keyboard();
 
   struct BOOTINFO *binfo = (struct BOOTINFO*) ADR_BOOTINFO;
   init_palette();
@@ -21,11 +59,7 @@ void HariMain(void) {
   sprintf(s, "scrnx = %d", binfo->scrnx);
   putfonts8_ascii(binfo->vram, binfo->scrnx, 16, 64, COL8_FFFFFF, s);
 
-	io_out8(PIC0_IMR, 0xf9);  // keyboard: IRQ1 (11111001)
-	io_out8(PIC1_IMR, 0xef);  // mouse: IRQ12 (11101111)
-
-  char keybuf[32];
-  fifo8_init(&keyfifo, 32, keybuf);
+  enable_mouse();
 
   for(;;) {
     io_cli();
