@@ -1,6 +1,6 @@
 #include "bootpack.h"
 
-extern struct KEYBUF keybuf;
+extern struct FIFO8 keyfifo;
 
 void HariMain(void) {
   init_gdtidt();
@@ -24,17 +24,15 @@ void HariMain(void) {
 	io_out8(PIC0_IMR, 0xf9);  // keyboard: IRQ1 (11111001)
 	io_out8(PIC1_IMR, 0xef);  // mouse: IRQ12 (11101111)
 
+  char keybuf[32];
+  fifo8_init(&keyfifo, 32, keybuf);
+
   for(;;) {
     io_cli();
-    if (keybuf.len == 0) {
+    if (fifo8_status(&keyfifo) == 0) {
       io_stihlt();
     } else {
-      unsigned char data = keybuf.data[keybuf.next_r];
-      keybuf.len--;
-      keybuf.next_r++;
-      if (keybuf.next_r == 32) {
-        keybuf.next_r = 0;
-      }
+      unsigned char data = fifo8_get(&keyfifo);
       io_sti();
       unsigned char s[4];
       sprintf(s, "%x", data);

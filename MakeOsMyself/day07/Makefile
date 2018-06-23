@@ -18,8 +18,8 @@ hankaku.c : hankaku.txt convert_hankaku.py
 %.o : %.c Makefile
 	gcc $(CFLAGS) $^ -o $@
 
-bootpack.hrb : bootpack.c har.ld hankaku.c nasmfunc.o my_sprintf.o graphic.o dsctbl.o int.o Makefile
-	gcc -march=i486 -m32 -nostdlib -nostdinc -T har.ld bootpack.c graphic.o dsctbl.o int.o hankaku.c nasmfunc.o my_sprintf.o -o bootpack.hrb
+bootpack.hrb : bootpack.c har.ld hankaku.c nasmfunc.o my_sprintf.o graphic.o dsctbl.o int.o fifo.o Makefile
+	gcc -march=i486 -m32 -nostdlib -nostdinc -T har.ld bootpack.c graphic.o dsctbl.o int.o fifo.o hankaku.c nasmfunc.o my_sprintf.o -o bootpack.hrb
 
 haribote.sys : asmhead.bin bootpack.hrb Makefile
 	cat asmhead.bin bootpack.hrb > haribote.sys
