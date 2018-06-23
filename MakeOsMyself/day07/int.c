@@ -27,9 +27,13 @@ void irq_handler21(int *esp) {
   struct BOOTINFO *binfo = (struct BOOTINFO*) ADR_BOOTINFO;
   io_out8(PIC0_OCW2, 0x61);  // Let PIC know recieve IRQ-01. 0x60 + IRQ number
   unsigned char data = io_in8(PORT_KEYDAT); 
-  if (keybuf.flag == 0) {
-    keybuf.data = data;
-    keybuf.flag = 1;
+  if (keybuf.len < 32) {
+    keybuf.data[keybuf.next_w] = data;
+    keybuf.len++;
+    keybuf.next_w++;
+    if (keybuf.next_w == 32) {
+      keybuf.next_w = 0;
+    }
   }
 }
 

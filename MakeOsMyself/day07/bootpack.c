@@ -26,11 +26,15 @@ void HariMain(void) {
 
   for(;;) {
     io_cli();
-    if (keybuf.flag == 0) {
+    if (keybuf.len == 0) {
       io_stihlt();
     } else {
-      unsigned char data = keybuf.data;
-      keybuf.flag = 0;
+      unsigned char data = keybuf.data[keybuf.next_r];
+      keybuf.len--;
+      keybuf.next_r++;
+      if (keybuf.next_r == 32) {
+        keybuf.next_r = 0;
+      }
       io_sti();
       unsigned char s[4];
       sprintf(s, "%x", data);
