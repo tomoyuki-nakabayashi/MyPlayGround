@@ -3,6 +3,7 @@
 #define PORT_KEYDAT   0x0060
 
 struct FIFO8 keyfifo;
+struct FIFO8 mousefifo;
 
 void init_pic(void) {
   io_out8(PIC0_IMR, 0xff);  // disable interrupt
@@ -32,10 +33,8 @@ void irq_handler21(int *esp) {
 // IRQ handler from PS/2 Mouse
 void irq_handler2c(int *esp)
 {
-	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-	boxfill8(binfo->vram, binfo->scrnx, COL8_000000, 0, 0, 32 * 8 - 1, 15);
-	putfonts8_ascii(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, "INT 2C (IRQ-12) : PS/2 mouse");
-	for (;;) {
-		io_hlt();
-	}
+  io_out8(PIC1_OCW2, 0x64);  // Let PIC know recieve IRQ-12. 0x60 + IRQ number
+  io_out8(PIC0_OCW2, 0x62);  // Let PIC know recieve IRQ-02. 0x60 + IRQ number
+  unsigned char data = io_in8(PORT_KEYDAT); 
+  fifo8_put(&mousefifo, data);
 }

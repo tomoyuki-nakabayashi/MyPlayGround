@@ -10,6 +10,7 @@
 #define MOUSECMD_ENABLE       0xf4
 
 extern struct FIFO8 keyfifo;
+extern struct FIFO8 mousefifo;
 
 void wait_KBC_sendready(void) {
   // Wait for keyboard controller is ready to send data.
@@ -33,6 +34,7 @@ void enable_mouse(void) {
   io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
   wait_KBC_sendready();
   io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
+  // Will recieve ACK (0xfa)
 }
 
 void HariMain(void) {
@@ -40,8 +42,9 @@ void HariMain(void) {
   init_pic();
   io_sti();
 
-  char keybuf[32];
+  char keybuf[32], mousebuf[128];
   fifo8_init(&keyfifo, 32, keybuf);
+  fifo8_init(&mousefifo, 128, mousebuf);
 	io_out8(PIC0_IMR, 0xf9);  // keyboard: IRQ1 (11111001)
 	io_out8(PIC1_IMR, 0xef);  // mouse: IRQ12 (11101111)
   init_keyboard();
@@ -51,28 +54,36 @@ void HariMain(void) {
   init_screen(binfo->vram, binfo->scrnx, binfo->scrny);
 
   char mcursor[256];
-  int mx = 160, my = 100;
-  init_mouse_cursor8(mcursor, COL8_008484);
-  putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
-
-  unsigned char s[16];
-  sprintf(s, "scrnx = %d", binfo->scrnx);
-  putfonts8_ascii(binfo->vram, binfo->scrnx, 16, 64, COL8_FFFFFF, s);
+	int mx = (binfo->scrnx - 16) / 2;
+	int my = (binfo->scrny - 28 - 16) / 2;
+	init_mouse_cursor8(mcursor, COL8_008484);
+	putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
+  char s[40];
+	sprintf(s, "(%d, %d)", mx, my);
+	putfonts8_ascii(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 
   enable_mouse();
 
   for(;;) {
     io_cli();
-    if (fifo8_status(&keyfifo) == 0) {
+    if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) == 0) {
       io_stihlt();
     } else {
-      unsigned char data = fifo8_get(&keyfifo);
-      io_sti();
-      unsigned char s[4];
-      sprintf(s, "%x", data);
-
-      boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 16, 15, 31);
-      putfonts8_ascii(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
+      if (fifo8_status(&keyfifo) != 0) {
+        unsigned char data = fifo8_get(&keyfifo);
+        io_sti();
+        unsigned char s[4];
+        sprintf(s, "%x", data);
+        boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 16, 15, 31);
+        putfonts8_ascii(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
+      } else if (fifo8_status(&mousefifo) != 0) {
+        unsigned char data = fifo8_get(&mousefifo);
+        io_sti();
+        unsigned char s[4];
+        sprintf(s, "%x", data);
+        boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 32, 16, 47, 31);
+        putfonts8_ascii(binfo->vram, binfo->scrnx, 32, 16, COL8_FFFFFF, s);
+      }
     }
   }
 }
