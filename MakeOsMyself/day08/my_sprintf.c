@@ -3,6 +3,11 @@
 int dec2asc (char *str, int dec) {
     int len = 0, len_buf;
     int buf[10];
+    if (dec < 0) {
+        *(str++) = '-';
+        len++;
+        dec = -dec;
+    }
     while (1) {
         buf[len++] = dec % 10;
         if (dec < 10) break;

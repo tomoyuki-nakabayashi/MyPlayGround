@@ -49,17 +49,20 @@ int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data) {
       mdec->phase = 1;
     }
     return 0;
-  } else if (mdec->phase == 1) {
+  } 
+  if (mdec->phase == 1) {
     if ((data & 0xc8) == 0x08) {
       mdec->buf[0] = data;
       mdec->phase = 2;
     }
     return 0;
-  } else if (mdec->phase == 2) {
+  } 
+  if (mdec->phase == 2) {
     mdec->buf[1] = data;
     mdec->phase = 3;
     return 0;
-  } else if (mdec->phase == 3) {
+  } 
+  if (mdec->phase == 3) {
     mdec->buf[2] = data;
     mdec->phase = 1;
     mdec->btn = mdec->buf[0] & 0x07;
@@ -68,7 +71,7 @@ int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data) {
     if ((mdec->buf[0] & 0x10) != 0) {
       mdec->x |= 0xffffff00;
     }
-    if ((mdec->buf[1] & 0x20) != 0) {
+    if ((mdec->buf[0] & 0x20) != 0) {
       mdec->y |= 0xffffff00;
     }
     mdec->y = -mdec->y;
@@ -111,16 +114,16 @@ void HariMain(void) {
       io_stihlt();
     } else {
       if (fifo8_status(&keyfifo) != 0) {
-        unsigned char data = fifo8_get(&keyfifo);
+        int data = fifo8_get(&keyfifo);
         io_sti();
         unsigned char s[4];
         sprintf(s, "%x", data);
         boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 16, 15, 31);
         putfonts8_ascii(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
       } else if (fifo8_status(&mousefifo) != 0) {
-        unsigned char data = fifo8_get(&mousefifo);
+        int data = fifo8_get(&mousefifo);
         io_sti();
-        if (mouse_decode(&mdec, data) == 1) {
+        if (mouse_decode(&mdec, data) != 0) {
           unsigned char s[32];
           sprintf(s, "[lcr %d %d]", mdec.x, mdec.y);
           if ((mdec.btn & 0x01) != 0) {
@@ -132,14 +135,14 @@ void HariMain(void) {
           if ((mdec.btn & 0x04) != 0) {
             s[2] = 'C';
           }
-          boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 32, 16, 32 + 8 * 8 - 1, 31);
+          boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 32, 16, 32 + 16 * 8 - 1, 31);
           putfonts8_ascii(binfo->vram, binfo->scrnx, 32, 16, COL8_FFFFFF, s);
 
           // Move mouse cursor
           // Erase mouse cursor
           boxfill8(binfo->vram, binfo->scrnx, COL8_008484, mx, my, mx + 15, my + 15);
-          mx += mdec.x;
-          my += mdec.y;
+          mx += mdec.x / 64;
+          my += mdec.y / 64;
           if (mx < 0) mx = 0;
           if (my < 0) my = 0;
           if (mx > binfo->scrnx - 16) mx = binfo->scrnx - 16;
