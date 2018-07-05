@@ -4,6 +4,8 @@
 
 mod vga_buffer;
 
+extern crate volatile;
+
 use core::panic::PanicInfo;
 
 #[panic_implementation]
