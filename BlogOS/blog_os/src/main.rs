@@ -1,10 +1,13 @@
 #![feature(panic_implementation)]
 #![no_std]  // Don't link the Rust standard library
 #![no_main]  // Disable all Rust-level entry points
+#[macro_use]
+extern crate lazy_static;
 
 mod vga_buffer;
 
 extern crate volatile;
+extern crate spin;
 
 use core::panic::PanicInfo;
 
@@ -18,7 +21,9 @@ pub fn panic(_info: &PanicInfo) -> ! {
 pub extern "C" fn _start() -> ! {
     // This function is the entry point, since the linker looks for a function
     // named `_start` by default.
-    vga_buffer::print_something();
+    use core::fmt::Write;
+    vga_buffer::WRITER.lock().write_str("Hello again").unwrap();
+    write!(vga_buffer::WRITER.lock(), ", some numbers: {} {}", 42, 1.337).unwrap();
 
     loop {}
 }

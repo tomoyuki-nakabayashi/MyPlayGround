@@ -46,6 +46,16 @@ struct Buffer {
   chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
+use spin::Mutex;
+
+lazy_static! {
+  pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+    column_position: 0,
+    color_code: ColorCode::new(Color::Yellow, Color::Black),
+    buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+  });
+}
+
 pub struct Writer {
   column_position: usize,
   color_code: ColorCode,
@@ -112,17 +122,4 @@ impl fmt::Write for Writer {
     self.write_string(s);
     Ok(())
   }
-}
-
-pub fn print_something() {
-  use core::fmt::Write;
-  let mut writer = Writer {
-    column_position: 0,
-    color_code: ColorCode::new(Color::Yellow, Color::Black),
-    buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-  };
-
-  writer.write_byte(b'H');
-  writer.write_str("ello ").unwrap();
-  write!(writer, "The numbers are {} and {}", 42, 1.0/3.0).unwrap();
 }
