@@ -4,6 +4,7 @@
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
 mod vga_buffer;
 
 extern crate volatile;
@@ -14,6 +15,7 @@ use core::panic::PanicInfo;
 #[panic_implementation]
 #[no_mangle]
 pub fn panic(_info: &PanicInfo) -> ! {
+    println!("{}", info);
     loop {}
 }
 
@@ -21,9 +23,7 @@ pub fn panic(_info: &PanicInfo) -> ! {
 pub extern "C" fn _start() -> ! {
     // This function is the entry point, since the linker looks for a function
     // named `_start` by default.
-    use core::fmt::Write;
-    vga_buffer::WRITER.lock().write_str("Hello again").unwrap();
-    write!(vga_buffer::WRITER.lock(), ", some numbers: {} {}", 42, 1.337).unwrap();
+    println!("Hello World{}", "!");
 
     loop {}
 }

@@ -1,6 +1,21 @@
 use volatile::Volatile;
 use core::fmt;
 
+macro_rules! print {
+  ($($arg:tt)*) => ($crate::vga_buffer::print(format_args!($($arg)*)));
+}
+
+macro_rules! println {
+    () => (print!("\n"));
+    ($fmt:expr) => (print!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => (print!(concat!($fmt, "\n"), $($arg)*));
+}
+
+pub fn print(args: fmt::Arguments) {
+  use core::fmt::Write;
+  WRITER.lock().write_fmt(args).unwrap();
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
