@@ -1,17 +1,26 @@
 #![feature(panic_implementation)]
 #![no_std]  // Don't link the Rust standard library
-#![no_main]  // Disable all Rust-level entry points
-#[macro_use]
-extern crate lazy_static;
+#![cfg_attr(not(test), no_main)]  // Disable all Rust-level entry points
+#![cfg_attr(test, allow(dead_code, unused_macros, unused_imports))]
+
+#[cfg(test)]
+extern crate std;
+
+#[cfg(test)]
+extern crate array_init;
 
 #[macro_use]
-mod vga_buffer;
+extern crate lazy_static;
 
 extern crate volatile;
 extern crate spin;
 
+#[macro_use]
+mod vga_buffer;
+
 use core::panic::PanicInfo;
 
+#[cfg(not(test))] // only compile when the test flag is not set
 #[panic_implementation]
 #[no_mangle]
 pub fn panic(_info: &PanicInfo) -> ! {
@@ -19,6 +28,7 @@ pub fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
+#[cfg(not(test))]
 #[no_mangle]  // Don't mangle the name of the function
 pub extern "C" fn _start() -> ! {
     // This function is the entry point, since the linker looks for a function
