@@ -1,0 +1,20 @@
+{
+  "name": "extract-metadata",
+  "version": "1.0.0",
+  "description": "Extract Metadata Function",
+  "main": "index.js",
+  "scripts": {
+    "test": "run-local-lambda --file index.js --event tests/event.json",
+    "deploy": "aws lambda update-function-code --function-name arn:aws:lambda:us-east-1:998535819267:function:extract-metadata --zip-file fileb://Lambda-Deployment.zip",
+    "predeploy": "zip -r Lambda-Deployment.zip * -x *.zip *.json *.log"
+  },
+  "dependencies": {
+    "asw-sdk": "latest",
+    "aws-sdk": "^2.270.1"
+  },
+  "author": "Tomoyuki Nakabayashi",
+  "license": "BSD-2-Clause",
+  "devDependencies": {
+    "run-local-lambda": "^1.1.1"
+  }
+}
