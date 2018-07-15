@@ -30,7 +30,7 @@ var userController = {
       }
     });
 
-    var idToken = localStorage.getItem('userToken');
+    var idToken = localStorage.getItem('accessToken');
 
     if (idToken) {
       this.configureAuthenticatedRequests();
@@ -47,7 +47,7 @@ var userController = {
   configureAuthenticatedRequests: function() {
     $.ajaxSetup({
       'beforeSend': function(xhr) {
-        xhr.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('userToken'));
+        xhr.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('accessToken'));
       }
     });
   },
@@ -71,7 +71,8 @@ var userController = {
         that.data.auth0Lock.hide();
         if (error) return alert("Auth0 error:" + error);
 
-        localStorage.setItem("userToken", authResult.accessToken);
+        localStorage.setItem("idToken", authResult.idToken);
+        localStorage.setItem("accessToken", authResult.accessToken);
         that.configureAuthenticatedRequests();
         that.showUserAuthenticationDetails(profile);
       })
@@ -97,8 +98,9 @@ var userController = {
 
     this.uiElements.profileButton.click(function (e) {
       var url = that.data.config.apiBaseUrl + '/user-profile';
-      $.get(url, function (data, status) {
-        alert(JSON.stringify(data));
+      $.get(url, function(data, status) {
+        $('#user-profile-raw-json').text(JSON.stringify(data, null, 2));
+        $('#user-profile-modal').modal();
       })
     });
   }
