@@ -20,13 +20,21 @@ var userController = {
     this.uiElements.profileImage = $('#profilepicture');
 
     this.data.config = config;
-    this.data.auth0Lock = new Auth0Lock(config.auth0.clientId, config.auth0.domain);
+    this.data.auth0Lock = new Auth0Lock(config.auth0.clientId, config.auth0.domain, {
+      auth: {
+        redirectUrl: 'http://127.0.0.1:8000',
+        responseType: 'code',
+        params: {
+          scope: 'openid email user_metadata picture' // Learn about scopes: https://auth0.com/docs/scopes
+        }
+      }
+    });
 
     var idToken = localStorage.getItem('userToken');
 
     if (idToken) {
       this.configureAuthenticatedRequests();
-      this.data.auth0Lock.getProfile(idToken, function(err, profile) {
+      this.data.auth0Lock.getUserInfo(idToken, function(err, profile) {
         if (err) {
           return alert('There was an error getting the profile: ' + err.message);
         }
@@ -58,22 +66,23 @@ var userController = {
   wireEvents: function() {
     var that = this;
 
-    this.uiElements.loginButton.click(function(e) {
-      var params = {
-        authParams: {
-          scope: 'openid email user_metadata picture'
-        }
-      };
+    this.data.auth0Lock.on("authenticated", function(authResult) {
+      that.data.auth0Lock.getUserInfo(authResult.accessToken, function(error, profile) {
+        that.data.auth0Lock.hide();
+        if (error) return alert("Auth0 error:" + error);
 
-      that.data.auth0Lock.show(params, function(err, profile, token) {
-        if (err) {
-          // Error callback
-          alert('There was an error');
-        } else {
-          // Save the JWT token.
-          localStorage.setItem('userToken', token);
-          that.configureAuthenticatedRequests();
-          that.showUserAuthenticationDetails(profile);
+        localStorage.setItem("userToken", authResult.accessToken);
+        that.configureAuthenticatedRequests();
+        that.showUserAuthenticationDetails(profile);
+      })
+    });
+
+    this.uiElements.loginButton.click(function(e) {
+      that.data.auth0Lock.show({
+        auth: {
+          params: {
+              responseType: 'id_token token'
+          }
         }
       });
     });
