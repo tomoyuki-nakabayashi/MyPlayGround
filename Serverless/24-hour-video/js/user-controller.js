@@ -1,7 +1,7 @@
 var userController = {
   data: {
     auth0Lock: null,
-    config:null
+    config: null
   },
   uiElements: {
     loginButton: null,
@@ -33,7 +33,8 @@ var userController = {
         that.showUserAuthenticationDetails(profile);
       });
     }
-    this.writeEvents();
+
+    this.wireEvents();
   },
   configureAuthenticatedRequests: function() {
     $.ajaxSetup({
@@ -44,35 +45,42 @@ var userController = {
   },
   showUserAuthenticationDetails: function(profile) {
     var showAuthenticationElements = !!profile;
+
     if (showAuthenticationElements) {
       this.uiElements.profileNameLabel.text(profile.nickname);
       this.uiElements.profileImage.attr('src', profile.picture);
     }
+
     this.uiElements.loginButton.toggle(!showAuthenticationElements);
     this.uiElements.logoutButton.toggle(showAuthenticationElements);
     this.uiElements.profileButton.toggle(showAuthenticationElements);
   },
   wireEvents: function() {
     var that = this;
+
     this.uiElements.loginButton.click(function(e) {
       var params = {
         authParams: {
-          scope: 'openid emal user_metadata picture'
+          scope: 'openid email user_metadata picture'
         }
       };
 
       that.data.auth0Lock.show(params, function(err, profile, token) {
-        if(err) {
+        if (err) {
+          // Error callback
           alert('There was an error');
         } else {
+          // Save the JWT token.
           localStorage.setItem('userToken', token);
           that.configureAuthenticatedRequests();
           that.showUserAuthenticationDetails(profile);
         }
       });
     });
+
     this.uiElements.logoutButton.click(function(e) {
       localStorage.removeItem('userToken');
+
       that.uiElements.logoutButton.hide();
       that.uiElements.profileButton.hide();
       that.uiElements.loginButton.show();
