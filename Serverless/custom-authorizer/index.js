@@ -37,22 +37,4 @@ exports.handler = function(event, context, callback){
       callback(null, generatePolicy('user', 'allow', event.methodArn));
     }
   })
-  
-  var options = {
-    url: 'https://'+ process.env.DOMAIN + '/userinfo',
-    method: 'GET',
-    json: true,
-    headers: {
-      'Authorization': event.authToken
-    }
-  };
-
-  request(options, function(error, response, body){
-    if (!error && response.statusCode === 200) {
-      console.log('Success to get user info.');
-      callback(null, body);
-    } else {
-      callback(error);
-    }
-  });
 };
