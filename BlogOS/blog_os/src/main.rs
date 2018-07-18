@@ -25,12 +25,15 @@ pub fn panic(info: &PanicInfo) -> ! {
 pub extern "C" fn _start() -> ! {
     println!("Hello World{}", "!");  // prints to vga buffer
 
+    blog_os::gdt::init();
     init_idt();
 
-    // trigger a page fault
-    unsafe {
-        *(0xdeadbeaf as *mut u64) = 42;
-    };
+    fn stack_overflow() {
+        stack_overflow(); // for each recursion, the return address is pushed
+    }
+
+    // trigger a stack overflow
+    stack_overflow();
 
     println!("It did not crash!");
     loop {}
@@ -46,7 +49,10 @@ lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
-        idt.double_fault.set_handler_fn(double_fault_handler);
+        unsafe {
+            idt.double_fault.set_handler_fn(double_fault_handler)
+                .set_stack_index(blog_os::gdt::DOUBLE_FAULT_IST_INDEX);
+        }
         idt
     };
 }
