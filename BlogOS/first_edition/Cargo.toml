@@ -5,3 +5,6 @@ authors = ["Tomoyuki Nakabayashi <tomo.wait.for.it.yuki@gmail.com>"]
 
 [lib]
 crate-type = ["staticlib"]
+
+[dependencies]
+volatile = "0.2.3"
