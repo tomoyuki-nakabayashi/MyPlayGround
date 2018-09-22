@@ -111,3 +111,8 @@ func (es *ExpressionStatement) String() string {
 	}
 	return ""
 }
+
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(ast.Expression) ast.Exression
+)
