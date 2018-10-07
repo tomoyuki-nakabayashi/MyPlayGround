@@ -8,10 +8,13 @@
 
 #[macro_use]
 mod vga_buffer;
+mod memory;
 
 extern crate volatile;
 extern crate spin;
 extern crate multiboot2;
+
+use memory::FrameAllocator;
 
 #[no_mangle]
 pub extern fn rust_main(multiboot_information_address: usize) {
@@ -34,6 +37,20 @@ pub extern fn rust_main(multiboot_information_address: usize) {
         println!("    addr: 0x{:x}, size: 0x{:x}, flags: 0x{:x}",
             section.addr, section.size, section.flags);
     }
+
+    let kernel_start = elf_sections_tag.sections().map(|s| s.addr)
+        .min().unwrap();
+    let kernel_end = elf_sections_tag.sections().map(|s| s.addr + s.size)
+        .max().unwrap();
+    let multiboot_start = multiboot_information_address;
+    let multiboot_end = multiboot_start + (boot_info.total_size as usize);
+
+    let mut frame_allocator = memory::AreaFrameAllocator::new(
+        kernel_start as usize, kernel_end as usize, multiboot_start,
+        multiboot_end, memory_map_tag.memory_areas()
+    );
+
+    println!("{:?}", frame_allocator.allocate_frame());
 
     loop{}
 }
