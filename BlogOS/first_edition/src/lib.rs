@@ -15,6 +15,7 @@ extern crate spin;
 pub extern fn rust_main() {
     vga_buffer::clear_screen();
     println!("Hello World{}", "!");
+    println!("{}", { println!("inner"); "outer" });
 
     loop{}
 }
