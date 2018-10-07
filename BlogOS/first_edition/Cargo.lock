@@ -2,8 +2,20 @@
 name = "blog_os"
 version = "0.1.0"
 dependencies = [
+ "rlibc 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spin 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "volatile 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "rlibc"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "spin"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "volatile"
@@ -11,4 +23,6 @@ version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
+"checksum rlibc 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "4f725fa0be00ed4a869c61f1adb156b629bb6c8d97f2ee4d0644bba1ce33b04b"
+"checksum spin 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)" = "37b5646825922b96b5d7d676b5bb3458a54498e96ed7b0ce09dc43a07038fea4"
 "checksum volatile 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "54d4343a2df2d65144a874f95950754ee7b7e8594f6027aae8c7d0f4858a3fe8"
