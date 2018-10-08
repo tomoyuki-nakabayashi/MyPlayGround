@@ -13,6 +13,9 @@ mod memory;
 extern crate volatile;
 extern crate spin;
 extern crate multiboot2;
+#[macro_use]
+extern crate bitflags;
+extern crate x86_64;
 
 use memory::FrameAllocator;
 
@@ -51,6 +54,8 @@ pub extern fn rust_main(multiboot_information_address: usize) {
     );
 
     println!("{:?}", frame_allocator.allocate_frame());
+
+    memory::test_paging(&mut frame_allocator);
 
     loop{}
 }
