@@ -1,9 +1,7 @@
 #![feature(panic_implementation)]
 #![feature(panic_info_message)]
 #![no_std]
-#![feature(unique)]
 #![feature(const_fn)]
-#![feature(const_unique_new)]
 #![feature(ptr_internals)]
 
 #[macro_use]
@@ -51,6 +49,7 @@ pub extern fn rust_main(multiboot_information_address: usize) {
     println!("{:?}", frame_allocator.allocate_frame());
 
     enable_nxe_bit();
+    enable_write_protect_bit();
     memory::remap_the_kernel(&mut frame_allocator, boot_info);
     frame_allocator.allocate_frame();
     println!("It did not crash!");
@@ -77,7 +76,7 @@ fn enable_write_protect_bit() {
 use core::panic::PanicInfo;
 
 #[cfg(not(test))] // only compile when the test flag is not set
-#[panic_implementation]
+#[panic_handler]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
     if let Some(location) = info.location() {
