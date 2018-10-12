@@ -1,6 +1,6 @@
-use super::{VirtualAddress, PhysicalAddress, Page, ENTRY_COUNT};
+use super::{VirtualAddress, PhysicalAddress, Page};
 use super::entry::*;
-use super::table::{self, Table, Level4, Level1};
+use super::table::{self, Table, Level4};
 use memory::{PAGE_SIZE, Frame, FrameAllocator};
 use core::ptr::Unique;
 
@@ -43,6 +43,7 @@ impl Mapper {
 
     /// Maps the page to some free frame with the provided flags.
     /// The free frame is allocated from the given `FrameAllocator`.
+    #[allow(dead_code)]
     pub fn map<A>(&mut self, page: Page, flags: EntryFlags, allocator: &mut A)
         where A: FrameAllocator
     {
@@ -64,7 +65,7 @@ impl Mapper {
 
     /// Unmaps the given page and adds all freed frames to the given
     /// `FrameAllocator`.
-    pub fn unmap<A>(&mut self, page: Page, allocator: &mut A)
+    pub fn unmap<A>(&mut self, page: Page, _allocator: &mut A)
         where A: FrameAllocator
     {
         assert!(self.translate(page.start_address()).is_some());
@@ -74,7 +75,7 @@ impl Mapper {
             .and_then(|p3| p3.next_table_mut(page.p3_index()))
             .and_then(|p2| p2.next_table_mut(page.p2_index()))
             .expect("mapping code does not support huge pages");
-        let frame = p1[page.p1_index()].pointed_frame().unwrap();
+        let _frame = p1[page.p1_index()].pointed_frame().unwrap();
         p1[page.p1_index()].set_unused();
 
         use x86_64::instructions::tlb;
