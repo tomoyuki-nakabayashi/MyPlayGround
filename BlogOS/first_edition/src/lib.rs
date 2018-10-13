@@ -1,5 +1,8 @@
 #![feature(panic_implementation)]
 #![feature(panic_info_message)]
+#![feature(alloc)]
+#![feature(alloc_error_handler)]
+#![feature(allocator_api)]
 #![no_std]
 #![feature(const_fn)]
 #![feature(ptr_internals)]
@@ -8,50 +11,51 @@
 mod vga_buffer;
 mod memory;
 
+extern crate rlibc;
 extern crate volatile;
 extern crate spin;
 extern crate multiboot2;
 #[macro_use]
 extern crate bitflags;
 extern crate x86_64;
+extern crate alloc;
+#[macro_use]
+extern crate once;
 
-use memory::FrameAllocator;
+use memory::heap_allocator::BumpAllocator;
+
+pub const HEAP_START: usize = 0o_000_001_000_000_0000;
+pub const HEAP_SIZE: usize = 100 * 1024;  // 100KiB
+
+#[global_allocator]
+static HEAP_ALLOCATOR: BumpAllocator = BumpAllocator::new(HEAP_START,
+    HEAP_START + HEAP_SIZE);
 
 #[no_mangle]
 pub extern fn rust_main(multiboot_information_address: usize) {
     vga_buffer::clear_screen();
+    println!("Hello World{}", "!");
 
     let boot_info = unsafe{ multiboot2::load(multiboot_information_address) };
-    let memory_map_tag = boot_info.memory_map_tag()
-        .expect("Memory map tag required");
-    let elf_sections_tag = boot_info.elf_sections_tag()
-        .expect("Elf-sections tag required");
-
-    println!("kernel sections:");
-    for section in elf_sections_tag.sections() {
-        println!("    addr: 0x{:x}, start: 0x{:x}, size: 0x{:x}, flags: 0x{:x}",
-            section.addr, section.start_address(), section.size, section.flags);
-    }
-
-    let kernel_start = elf_sections_tag.sections().map(|s| s.addr)
-        .min().unwrap();
-    let kernel_end = elf_sections_tag.sections().map(|s| s.addr + s.size)
-        .max().unwrap();
-        
-    let multiboot_start = multiboot_information_address;
-    let multiboot_end = multiboot_start + (boot_info.total_size as usize);
-
-    let mut frame_allocator = memory::AreaFrameAllocator::new(
-        kernel_start as usize, kernel_end as usize, multiboot_start,
-        multiboot_end, memory_map_tag.memory_areas()
-    );
-
-    println!("{:?}", frame_allocator.allocate_frame());
-
     enable_nxe_bit();
     enable_write_protect_bit();
-    memory::remap_the_kernel(&mut frame_allocator, boot_info);
-    frame_allocator.allocate_frame();
+
+    // set up guard page and map the heap pages
+    memory::init(boot_info);
+
+    use alloc::boxed::Box;
+    use alloc::vec;
+    let mut heap_test = Box::new(42);
+    *heap_test -= 15;
+    let heap_test2 = Box::new("hello");
+    println!("{:?} {:?}", heap_test, heap_test2);
+
+    let mut vec_test = vec![1,2,3,4,5,6,7];
+    vec_test[3] = 42;
+    for i in &vec_test {
+        print!("{} ", i);
+    }
+
     println!("It did not crash!");
 
     loop{}
@@ -92,5 +96,12 @@ pub fn panic(info: &PanicInfo) -> ! {
         println!("panic occurred but can't get any message...");
     }
 
+    loop {}
+}
+
+use core::alloc::Layout;
+#[cfg(not(test))]
+#[alloc_error_handler]
+pub fn alloc_error(_: Layout) -> ! {
     loop {}
 }
