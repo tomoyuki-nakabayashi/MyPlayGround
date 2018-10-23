@@ -27,8 +27,8 @@ pub extern "C" fn _start() -> ! {
 
     blog_os::gdt::init();
     blog_os::interrupts::init_idt();
-
     unsafe { blog_os::interrupts::PICS.lock().initialize() };
+    x86_64::instructions::interrupts::enable();
 
     println!("It did not crash!");
     loop {}
