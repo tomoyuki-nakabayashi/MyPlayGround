@@ -1,4 +1,5 @@
 use gdt;
+use hlt_loop;
 use pic8259_simple::ChainedPics;
 use x86_64::structures::idt::{InterruptDescriptorTable, ExceptionStackFrame};
 use spin;
@@ -33,7 +34,7 @@ extern "x86-interrupt" fn double_fault_handler(
     stack_frame: &mut ExceptionStackFrame, _error_code: u64)
 {
     println!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
-    loop {}
+    hlt_loop();
 }
 
 extern "x86-interrupt" fn timer_interrupt_handler (

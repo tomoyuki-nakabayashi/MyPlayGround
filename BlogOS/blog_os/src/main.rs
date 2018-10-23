@@ -15,7 +15,7 @@ use core::panic::PanicInfo;
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    blog_os::hlt_loop();
 }
 
 // This function is the entry point, since the linker looks for a function
@@ -31,5 +31,5 @@ pub extern "C" fn _start() -> ! {
     x86_64::instructions::interrupts::enable();
 
     println!("It did not crash!");
-    loop {}
+    blog_os::hlt_loop();
 }
