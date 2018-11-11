@@ -6,7 +6,7 @@ authors = ["tomoyuki-nakabayashi <tomo.wait.for.it.yuki@gmail.com>"]
 [dependencies]
 bootloader_precompiled = "0.2.0"
 volatile = "0.2.3"
-spin = "0.4.6"
+spin = "0.4.10"
 uart_16550 = "0.1.0"
 x86_64 = "0.2.8"
 pic8259_simple = "0.1.1"
