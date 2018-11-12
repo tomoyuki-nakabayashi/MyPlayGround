@@ -41,7 +41,7 @@ void tokenize(char *p) {
             tokens[i].ty = TK_NUM;
             tokens[i].input = p;
             tokens[i].val = strtol(p, &p, 10);
-            i++
+            i++;
             continue;
         }
 
@@ -79,18 +79,23 @@ int main(int argc, char **argv) {
     while (tokens[i].ty != TK_EOF) {
         if (tokens[i].ty == '+') {
             i++;
-            printf("  add rax,  %ld\n", strtol(p, &p, 10));
+            if (tokens[i].ty != TK_NUM)
+                error(i);
+            printf("  add rax,  %d\n", tokens[i].val);
+            i++;
             continue;
         }
 
-        if (*p == '-') {
-            p++;
-            printf("  sub rax,  %ld\n", strtol(p, &p, 10));
+        if (tokens[i].ty == '-') {
+            i++;
+            if (tokens[i].ty != TK_NUM)
+                error(i);
+            printf("  sub rax,  %d\n", tokens[i].val);
+            i++;
             continue;
         }
 
-        fprintf(stderr, "Unexpected operator; '%c'\n", *p);
-        return 1;
+        error(i);
     }
 
     printf("  ret\n");
