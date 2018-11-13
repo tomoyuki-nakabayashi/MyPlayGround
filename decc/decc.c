@@ -32,9 +32,39 @@ typedef struct Node {
     int val;
 } Node;
 
-// Prototype
+// Prototype declarations
 Node *expr();
 void error(int);
+
+void gen(Node *node) {
+    if (node->op == ND_NUM) {
+        printf("  push %d\n", node->val);
+        return;
+    }
+
+    gen(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+
+    switch (node->op) {
+        case '+':
+            printf("  add rax, rdi\n");
+            break;
+        case '-':
+            printf("  sub rax, rdi\n");
+            break;
+        case '*':
+            printf("  mul rdi\n");
+            break;
+        case '/':
+            printf("  mov rdx, 0\n");
+            printf("  div rdi\n");
+    }
+
+    printf("  push rax\n");
+}
 
 Node *new_node(int op, Node *lhs, Node *rhs) {
     Node *node = malloc(sizeof(Node));
