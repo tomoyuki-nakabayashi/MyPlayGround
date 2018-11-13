@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +10,7 @@ enum {
     TK_EOF,        // End of input
 };
 
+
 typedef struct {
     int ty;      // Token type
     int val;     // The value if ty is TK_NUM
@@ -18,6 +20,89 @@ typedef struct {
 // Preserve the tokenizer result.
 // Assumes tokens up to 100.
 Token tokens[100];
+
+enum {
+    ND_NUM = 256  // Integer node
+};
+
+typedef struct Node {
+    int op;
+    struct Node *lhs;
+    struct Node *rhs;
+    int val;
+} Node;
+
+// Prototype
+Node *expr();
+void error(int);
+
+Node *new_node(int op, Node *lhs, Node *rhs) {
+    Node *node = malloc(sizeof(Node));
+    node->op = op;
+    node->lhs = lhs;
+    node->rhs = rhs;
+    return node;
+}
+
+Node *new_node_num(int val) {
+    Node *node = malloc(sizeof(Node));
+    node->op = ND_NUM;
+    node->val = val;
+    return node;
+}
+
+int32_t pos = 0;
+Node *term() {
+    if (tokens[pos].ty == TK_NUM)
+        return new_node_num(tokens[pos++].val);
+    if (tokens[pos].ty == '(') {
+        pos++;
+        Node *node = expr();
+        if (tokens[pos].ty != ')') {
+            fprintf(stderr, "Cloud not found `)`.");
+            error(pos);
+        }
+        pos++;
+        return node;
+    }
+    fprintf(stderr, "Unexpected token. Expect a number of '('.");
+    error(pos);
+}
+
+Node *mul() {
+    Node *lhs = term();
+    if (tokens[pos].ty == TK_EOF)
+        return lhs;
+    if (tokens[pos].ty == '*') {
+        pos++;
+        return new_node('*', lhs, mul());
+    }
+    if (tokens[pos].ty == '/') {
+        pos++;
+        return new_node('/', lhs, mul());
+    }
+
+    error(pos);
+}
+
+Node *expr() {
+    Node *lhs = mul();
+
+    if (tokens[pos].ty == TK_EOF)
+        return lhs;
+
+    if (tokens[pos].ty == '+') {
+        pos++;
+        return new_node('+', lhs, expr());
+    }
+
+    if (tokens[pos].ty == '-') {
+        pos++;
+        return new_node('-', lhs, expr());
+    }
+
+    error(pos);
+}
 
 // Split token from strings pointed by p.
 void tokenize(char *p) {
