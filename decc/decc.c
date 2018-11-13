@@ -112,6 +112,7 @@ Node *mul() {
         return new_node('/', lhs, mul());
     }
 
+    return lhs;
     error(pos);
 }
 
@@ -131,6 +132,8 @@ Node *expr() {
         return new_node('-', lhs, expr());
     }
 
+    return lhs;
+    fprintf(stderr, "Unexpected token. Expect '+' or '-'.\n");
     error(pos);
 }
 
@@ -144,7 +147,7 @@ void tokenize(char *p) {
             continue;
         }
 
-        if (*p == '+' || *p == '-') {
+        if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')') {
             tokens[i].ty = *p;
             tokens[i].input = p;
             i++;
@@ -179,40 +182,20 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    // Tokenize and parse.
     tokenize(argv[1]);
+    Node* ast = expr();
 
     // Output the upper half of assembly
     printf(".intel_syntax noprefix\n");
     printf(".global main\n");
     printf("main:\n");
 
-    if (tokens[0].ty != TK_NUM)
-        error(0);
-    printf("  mov rax,  %d\n", tokens[0].val);
+    // Generate code traversing AST.
+    gen(ast);
 
-    int i = 1;
-    while (tokens[i].ty != TK_EOF) {
-        if (tokens[i].ty == '+') {
-            i++;
-            if (tokens[i].ty != TK_NUM)
-                error(i);
-            printf("  add rax,  %d\n", tokens[i].val);
-            i++;
-            continue;
-        }
-
-        if (tokens[i].ty == '-') {
-            i++;
-            if (tokens[i].ty != TK_NUM)
-                error(i);
-            printf("  sub rax,  %d\n", tokens[i].val);
-            i++;
-            continue;
-        }
-
-        error(i);
-    }
-
+    // pop final result.
+    printf("  pop rax\n");
     printf("  ret\n");
     return 0;
 }
