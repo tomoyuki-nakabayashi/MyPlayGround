@@ -7,6 +7,7 @@
 // token identifiers
 enum {
     TK_NUM = 256,  // Integer token
+    TK_IDENT,      // Identifier
     TK_EOF,        // End of input
 };
 
@@ -22,7 +23,8 @@ typedef struct {
 Token tokens[100];
 
 enum {
-    ND_NUM = 256  // Integer node
+    ND_NUM = 256, // Integer node
+    ND_IDENT,     // Identifier node
 };
 
 typedef struct Node {
@@ -30,7 +32,10 @@ typedef struct Node {
     struct Node *lhs;
     struct Node *rhs;
     int val;
+    char name;         // for ND_IDENT
 } Node;
+
+Node *code[100];
 
 // Prototype declarations
 Node *expr();
@@ -74,6 +79,13 @@ Node *new_node(int op, Node *lhs, Node *rhs) {
     return node;
 }
 
+Node *new_node_ident(char name) {
+    Node *node = malloc(sizeof(Node));
+    node->op = ND_IDENT;
+    node->name = name;
+    return node;
+}
+
 Node *new_node_num(int val) {
     Node *node = malloc(sizeof(Node));
     node->op = ND_NUM;
@@ -85,6 +97,8 @@ int32_t pos = 0;
 Node *term() {
     if (tokens[pos].ty == TK_NUM)
         return new_node_num(tokens[pos++].val);
+    if (tokens[pos].ty == TK_IDENT)
+        return new_node_ident(tokens[pos++].val);
     if (tokens[pos].ty == '(') {
         pos++;
         Node *node = expr();
@@ -137,6 +151,35 @@ Node *expr() {
     error(pos);
 }
 
+Node *assign() {
+    Node *lhs = expr();
+    if (tokens[pos].ty == TK_EOF)
+        return lhs;
+
+    if (tokens[pos].ty == '=') {
+        pos++;
+        lhs = new_node('=', lhs, expr());
+        if (tokens[pos].ty == ';') {
+            pos++;
+            return lhs;
+        }
+    }
+
+    if (lhs->op == TK_NUM)
+        return lhs;
+}
+
+Node *program() {
+    int n = 0;
+    while (tokens[pos].ty != TK_EOF) {
+        code[n] = assign();
+        n++;
+    }
+
+    code[n] = NULL;  // NULL terminated.
+    return code;
+}
+
 // Split token from strings pointed by p.
 void tokenize(char *p) {
     int i = 0;
@@ -160,6 +203,14 @@ void tokenize(char *p) {
             tokens[i].input = p;
             tokens[i].val = strtol(p, &p, 10);
             i++;
+            continue;
+        }
+
+        if ('a' <= *p && *p <= 'z') {
+            tokens[i].ty = TK_IDENT;
+            tokens[i].input = p;
+            i++;
+            p++;
             continue;
         }
 
