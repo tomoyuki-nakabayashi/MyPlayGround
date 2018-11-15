@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+// position of token.
+int32_t pos = 0;
+
 // token identifiers
 enum {
     TK_NUM = 256,  // Integer token
@@ -41,10 +44,40 @@ Node *code[100];
 Node *expr();
 void error(int);
 
+void gen_lval(Node *node) {
+    if (node->op == ND_IDENT) {
+        printf("  mov rax, rbp\n");
+        printf("  sub rax, %d\n", ('z' - node->name + 1) * 8);
+        printf("  push rax\n");
+        return;
+    }
+
+    fprintf(stderr, "lvalue is not a variable\n");
+    error(pos);
+}
+
 void gen(Node *node) {
     if (node->op == ND_NUM) {
         printf("  push %d\n", node->val);
         return;
+    }
+
+    if (node->op == ND_IDENT) {
+        gen_lval(node);
+        printf("  pop rax\n");
+        printf("  mov rax, [rax]\n");
+        printf("  push rax\n");
+        return;
+    }
+
+    if (node->op == '=') {
+        gen_lval(node->lhs);
+        gen(node->rhs);
+
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  mov [rax], rdi\n");
+        printf("  push rdi\n");
     }
 
     gen(node->lhs);
@@ -93,7 +126,6 @@ Node *new_node_num(int val) {
     return node;
 }
 
-int32_t pos = 0;
 Node *term() {
     if (tokens[pos].ty == TK_NUM)
         return new_node_num(tokens[pos++].val);
@@ -169,7 +201,7 @@ Node *assign() {
         return lhs;
 }
 
-Node *program() {
+void *program() {
     int n = 0;
     while (tokens[pos].ty != TK_EOF) {
         code[n] = assign();
@@ -177,7 +209,6 @@ Node *program() {
     }
 
     code[n] = NULL;  // NULL terminated.
-    return code;
 }
 
 // Split token from strings pointed by p.
@@ -235,18 +266,29 @@ int main(int argc, char **argv) {
 
     // Tokenize and parse.
     tokenize(argv[1]);
-    Node* ast = expr();
+    program();
 
     // Output the upper half of assembly
     printf(".intel_syntax noprefix\n");
     printf(".global main\n");
     printf("main:\n");
 
-    // Generate code traversing AST.
-    gen(ast);
+    // prolog
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, 208\n");
 
+    // Generate code traversing AST.
+    for (int i = 0; code[i]; i++) {
+        gen(code[i]);
+
+        printf("  pop rax\n");
+    }
+
+    // epilog
     // pop final result.
-    printf("  pop rax\n");
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
     printf("  ret\n");
     return 0;
 }
