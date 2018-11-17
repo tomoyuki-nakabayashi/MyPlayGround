@@ -4,9 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+// position of token.
+int32_t pos = 0;
+
 // token identifiers
 enum {
     TK_NUM = 256,  // Integer token
+    TK_IDENT,      // Identifier
     TK_EOF,        // End of input
 };
 
@@ -22,7 +26,8 @@ typedef struct {
 Token tokens[100];
 
 enum {
-    ND_NUM = 256  // Integer node
+    ND_NUM = 256, // Integer node
+    ND_IDENT,     // Identifier node
 };
 
 typedef struct Node {
@@ -30,16 +35,49 @@ typedef struct Node {
     struct Node *lhs;
     struct Node *rhs;
     int val;
+    char name;         // for ND_IDENT
 } Node;
+
+Node *code[100];
 
 // Prototype declarations
 Node *expr();
 void error(int);
 
+void gen_lval(Node *node) {
+    if (node->op == ND_IDENT) {
+        printf("  mov rax, rbp\n");
+        printf("  sub rax, %d\n", ('z' - node->name + 1) * 8);
+        printf("  push rax\n");
+        return;
+    }
+
+    fprintf(stderr, "lvalue is not a variable\n");
+    error(pos);
+}
+
 void gen(Node *node) {
     if (node->op == ND_NUM) {
         printf("  push %d\n", node->val);
         return;
+    }
+
+    if (node->op == ND_IDENT) {
+        gen_lval(node);
+        printf("  pop rax\n");
+        printf("  mov rax, [rax]\n");
+        printf("  push rax\n");
+        return;
+    }
+
+    if (node->op == '=') {
+        gen_lval(node->lhs);
+        gen(node->rhs);
+
+        printf("  pop rdi\n");
+        printf("  pop rax\n");
+        printf("  mov [rax], rdi\n");
+        printf("  push rdi\n");
     }
 
     gen(node->lhs);
@@ -74,6 +112,13 @@ Node *new_node(int op, Node *lhs, Node *rhs) {
     return node;
 }
 
+Node *new_node_ident(char name) {
+    Node *node = malloc(sizeof(Node));
+    node->op = ND_IDENT;
+    node->name = name;
+    return node;
+}
+
 Node *new_node_num(int val) {
     Node *node = malloc(sizeof(Node));
     node->op = ND_NUM;
@@ -81,10 +126,11 @@ Node *new_node_num(int val) {
     return node;
 }
 
-int32_t pos = 0;
 Node *term() {
     if (tokens[pos].ty == TK_NUM)
         return new_node_num(tokens[pos++].val);
+    if (tokens[pos].ty == TK_IDENT)
+        return new_node_ident(tokens[pos++].val);
     if (tokens[pos].ty == '(') {
         pos++;
         Node *node = expr();
@@ -137,6 +183,34 @@ Node *expr() {
     error(pos);
 }
 
+Node *assign() {
+    Node *lhs = expr();
+    if (tokens[pos].ty == TK_EOF)
+        return lhs;
+
+    if (tokens[pos].ty == '=') {
+        pos++;
+        lhs = new_node('=', lhs, expr());
+        if (tokens[pos].ty == ';') {
+            pos++;
+            return lhs;
+        }
+    }
+
+    if (lhs->op == TK_NUM)
+        return lhs;
+}
+
+void *program() {
+    int n = 0;
+    while (tokens[pos].ty != TK_EOF) {
+        code[n] = assign();
+        n++;
+    }
+
+    code[n] = NULL;  // NULL terminated.
+}
+
 // Split token from strings pointed by p.
 void tokenize(char *p) {
     int i = 0;
@@ -163,6 +237,14 @@ void tokenize(char *p) {
             continue;
         }
 
+        if ('a' <= *p && *p <= 'z') {
+            tokens[i].ty = TK_IDENT;
+            tokens[i].input = p;
+            i++;
+            p++;
+            continue;
+        }
+
         fprintf(stderr, "Cannot tokenize: %s\n", p);
         exit(1);
     }
@@ -184,18 +266,29 @@ int main(int argc, char **argv) {
 
     // Tokenize and parse.
     tokenize(argv[1]);
-    Node* ast = expr();
+    program();
 
     // Output the upper half of assembly
     printf(".intel_syntax noprefix\n");
     printf(".global main\n");
     printf("main:\n");
 
-    // Generate code traversing AST.
-    gen(ast);
+    // prolog
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, 208\n");
 
+    // Generate code traversing AST.
+    for (int i = 0; code[i]; i++) {
+        gen(code[i]);
+
+        printf("  pop rax\n");
+    }
+
+    // epilog
     // pop final result.
-    printf("  pop rax\n");
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
     printf("  ret\n");
     return 0;
 }
