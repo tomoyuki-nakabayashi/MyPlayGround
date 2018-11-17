@@ -10,6 +10,7 @@ MEMORY
 ENTRY(Reset);
 
 EXTERN(RESET_VECTOR);
+EXTERN(EXCEPTIONS);
 
 SECTIONS
 {
@@ -20,6 +21,9 @@ SECTIONS
 
     /* Second entry: reset vector */
     KEEP(*(.vector_table.reset_vector));
+
+    /* The next 14 entries are exception vectors */
+    KEEP(*(.vector_table.exceptions));
   } > FLASH
 
   .text :
@@ -53,3 +57,12 @@ SECTIONS
     *(.ARM.exidx.*);
   }
 }
+
+PROVIDE(NMI = DefaultExceptionHandler);
+PROVIDE(HardFault = DefaultExceptionHandler);
+PROVIDE(MemManage = DefaultExceptionHandler);
+PROVIDE(BusFault = DefaultExceptionHandler);
+PROVIDE(UsageFault = DefaultExceptionHandler);
+PROVIDE(SVCall = DefaultExceptionHandler);
+PROVIDE(PendSV = DefaultExceptionHandler);
+PROVIDE(SysTick = DefaultExceptionHandler);

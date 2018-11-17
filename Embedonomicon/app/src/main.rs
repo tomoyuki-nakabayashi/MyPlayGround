@@ -1,18 +1,20 @@
+#![feature(core_intrinsics)]
 #![no_std]
 #![no_main]
+
+use core::intrinsics;
 
 use rt::entry;
 
 entry!(main);
 
-static RODATA: &[u8] = b"Hello, world!";
-static mut BSS: u8 = 0;
-static mut DATA: u16 = 1;
-
 fn main() -> ! {
-    let _x = RODATA;
-    let _y = unsafe { &BSS };
-    let _z = unsafe { &DATA };
+    // this executes the undefined instruction (UDF) and causes a HardFault exception
+    unsafe { intrinsics::abort() }
+}
 
+#[no_mangle]
+pub extern "C" fn HardFault() -> ! {
+    // do something interesting here
     loop {}
 }
