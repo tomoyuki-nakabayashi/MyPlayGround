@@ -1,22 +1,18 @@
-#![no_main]
 #![no_std]
+#![no_main]
 
-use core::panic::PanicInfo;
+use rt::entry;
 
-#[panic_handler]
-fn panic(_panic: &PanicInfo<'_>) -> ! {
+entry!(main);
+
+static RODATA: &[u8] = b"Hello, world!";
+static mut BSS: u8 = 0;
+static mut DATA: u16 = 1;
+
+fn main() -> ! {
+    let _x = RODATA;
+    let _y = unsafe { &BSS };
+    let _z = unsafe { &DATA };
+
     loop {}
 }
-
-#[no_mangle]
-pub unsafe extern "C" fn Reset() -> ! {
-    let _x = 42;
-
-    // can't return so we go into an infinite loop here.
-    loop {}
-}
-
-// The reset vector, a pointer into the reset handler
-#[link_section = ".vector_table.reset_vector"]
-#[no_mangle]
-pub static RESET_VECTOR: unsafe extern "C" fn() -> ! = Reset;
