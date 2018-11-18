@@ -1,4 +1,4 @@
-use std::{env, error::Error, fs::File, io::Write, path::PathBuf};
+use std::{env, error::Error, fs::{self, File}, io::Write, path::PathBuf};
 
 fn main() -> Result<(), Box<Error>> {
     // build directory for this crate
@@ -9,6 +9,10 @@ fn main() -> Result<(), Box<Error>> {
 
     // put `link.x` in the build directory
     File::create(out_dir.join("link.x"))?.write_all(include_bytes!("link.x"))?;
+
+    // link to `librt.a`
+    fs::copy("librt.a", out_dir.join("librt.a"))?;
+    println!("cargo:rustc-link-lib=static=rt");
 
     Ok(())
 }
