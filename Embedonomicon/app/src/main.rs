@@ -1,16 +1,39 @@
-#![feature(core_intrinsics)]
 #![no_std]
 #![no_main]
 
-use core::intrinsics;
+use cortex_m_semihosting::{
+    debug,
+    hio::{self, HStdout},
+};
 
+use log::{error, warn, Log};
 use rt::entry;
+
+struct Logger {
+    hstdout: HStdout,
+}
+
+impl Log for Logger {
+    type Error = ();
+
+    fn log(&mut self, address: u8) -> Result<(), ()> {
+        self.hstdout.write_all(&[address])
+    }
+}
 
 entry!(main);
 
 fn main() -> ! {
-    // this executes the undefined instruction (UDF) and causes a HardFault exception
-    unsafe { intrinsics::abort() }
+    let hstdout = hio::hstdout().unwrap();
+    let mut logger = Logger { hstdout };
+
+    warn!(logger, "Hello, world!");
+
+    error!(logger, "Goodbye");
+
+    debug::exit(debug::EXIT_SUCCESS);
+
+    loop {}
 }
 
 #[allow(non_snake_case)]
