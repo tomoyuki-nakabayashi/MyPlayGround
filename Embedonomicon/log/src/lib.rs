@@ -1,5 +1,9 @@
 #![no_std]
 
+pub trait GlobalLog: Sync {
+    fn log(&self, address: u8);
+}
+
 pub trait Log {
     type Error;
 
@@ -8,24 +12,34 @@ pub trait Log {
 
 /// Logs messages at the ERROR log level
 #[macro_export]
-macro_rules! error {
+macro_rules! log {
+    ($string:expr) => {
+        unsafe {
+            extern "Rust" {
+                static LOGGER: &'static dyn $crate::GlobalLog;
+            }
+
+            #[export_name = $string]
+            #[link_section = ".log"]
+            static SYMBOL: u8 = 0;
+
+            $crate::GlobalLog::log(LOGGER, &SYMBOL as *const u8 as usize as u8)
+        }
+    };
+
     ($logger:expr, $string:expr) => {{
         #[export_name = $string]
-        #[link_section = ".log.error"]
+        #[link_section = ".log"]
         static SYMBOL: u8 = 0;
 
         $crate::Log::log(&mut $logger, &SYMBOL as *const u8 as usize as u8)
     }};
 }
 
-/// Logs messages at the WARNING log level
 #[macro_export]
-macro_rules! warn {
-    ($logger:expr, $string:expr) => {{
-        #[export_name = $string]
-        #[link_section = ".log.warning"]
-        static SYMBOL: u8 = 0;
-
-        $crate::Log::log(&mut $logger, &SYMBOL as *const u8 as usize as u8)
-    }};
+macro_rules! global_logger {
+    ($logger:expr) => {
+        #[no_mangle]
+        pub static LOGGER: &dyn $crate::GlobalLog = &$logger;
+    };
 }

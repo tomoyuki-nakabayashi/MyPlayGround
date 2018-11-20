@@ -1,39 +1,46 @@
 #![no_std]
 #![no_main]
 
+use cortex_m::interrupt;
 use cortex_m_semihosting::{
     debug,
     hio::{self, HStdout},
 };
 
-use log::{error, warn, Log};
+use log::{global_logger, log, GlobalLog};
 use rt::entry;
 
-struct Logger {
-    hstdout: HStdout,
-}
+struct Logger;
 
-impl Log for Logger {
-    type Error = ();
-
-    fn log(&mut self, address: u8) -> Result<(), ()> {
-        self.hstdout.write_all(&[address])
-    }
-}
+global_logger!(Logger);
 
 entry!(main);
 
 fn main() -> ! {
-    let hstdout = hio::hstdout().unwrap();
-    let mut logger = Logger { hstdout };
+    log!("Hello, world!");
 
-    warn!(logger, "Hello, world!");
-
-    error!(logger, "Goodbye");
+    log!("Goodbye");
 
     debug::exit(debug::EXIT_SUCCESS);
 
     loop {}
+}
+
+impl GlobalLog for Logger {
+    fn log(&self, address: u8) {
+        interrupt::free(|_| unsafe {
+            static mut HSTDOUT: Option<HStdout> = None;
+
+            // lazy initialization
+            if HSTDOUT.is_none() {
+                HSTDOUT = Some(hio::hstdout()?);
+            }
+
+            let hstdout = HSTDOUT.as_mut().unwrap();
+
+            hstdout.write_all(&[address])
+        }).ok();  // `ok()` = ignore errors
+    }
 }
 
 #[allow(non_snake_case)]

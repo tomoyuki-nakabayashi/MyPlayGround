@@ -1,6 +1,6 @@
 .section .text.HardFaultTrampoline
 .global HardFaultTrampoline
-.thumb_func
+//.thumb_func
 HardFaultTrampoline:
-    mrs r0, MSP
-    b HardFault
+//    mrs r0, MSP
+    b.w HardFault

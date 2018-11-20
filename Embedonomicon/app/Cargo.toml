@@ -5,6 +5,7 @@ authors = ["tomoyuki-nakabayashi <tomo.wait.for.it.yuki@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+cortex-m = "0.5.7"
 cortex-m-semihosting = "0.3.1"
 rt = { path = "../rt"}
 log = { path = "../log"}
